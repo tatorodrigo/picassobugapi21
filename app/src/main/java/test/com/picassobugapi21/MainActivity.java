@@ -34,9 +34,10 @@ public class MainActivity extends AppCompatActivity {
                 if (decodedBitmapOnError != null && !decodedBitmapOnError.isRecycled()) {
                     decodedBitmapOnError.recycle();
                 }
-                image.setTag(null);
             } catch (Exception e) {
                 e.printStackTrace();
+            } finally {
+                image.setTag(null);
             }
         }
         Picasso picasso = new Picasso.Builder(this)
