@@ -27,22 +27,22 @@ public class MainActivity extends AppCompatActivity {
         final ImageView image = (ImageView) findViewById(R.id.image_view);
 
         //em caso de erro do picasso, nós carregamos o bitmap no método onImageLoadFailed
-		//e setamos uma WeakReference deste bitmap na tag do imageview
-		//isto é importante pois nós não estamos preocupados em manter estes
-		//bitmaps carregados em memória, então tão logo o imageview for reutilizado
-		//nós reciclamos o bitmap antigo
+        //e setamos uma WeakReference deste bitmap na tag do imageview
+        //isto é importante pois nós não estamos preocupados em manter estes
+        //bitmaps carregados em memória, então tão logo o imageview for reutilizado
+        //nós reciclamos o bitmap antigo
         if (image.getTag() != null) {
-			//bom, agora sabemos que a imageview tem uma tag que, esperançosamente,
-			//fomos nós quem setamos no onImageLoadFailed
-			//por isto, fazemos o cast para WeakReference<Bitmap> da tag do imageview
+            //bom, agora sabemos que a imageview tem uma tag que, esperançosamente,
+            //fomos nós quem setamos no onImageLoadFailed
+            //por isto, fazemos o cast para WeakReference<Bitmap> da tag do imageview
             try {
                 WeakReference<Bitmap> decodedBitmapOnErrorReference = (WeakReference<Bitmap>) image.getTag();
                 Bitmap decodedBitmapOnError = decodedBitmapOnErrorReference.get();
                 if (decodedBitmapOnError != null && !decodedBitmapOnError.isRecycled()) {
-					//aqui é onde vamos liberar memória
-					//para não termos problema com o imageview (tentar usar um bitmap reciclado)
-					//nós setamos o imagebitmap para nulo antes de reciclar o bitmap
-					image.setImageBitmap(null);
+                    //aqui é onde vamos liberar memória
+                    //para não termos problema com o imageview (tentar usar um bitmap reciclado)
+                    //nós setamos o imagebitmap para nulo antes de reciclar o bitmap
+                    image.setImageBitmap(null);
                     decodedBitmapOnError.recycle();
                 }
             } catch (Exception e) {
@@ -51,38 +51,38 @@ public class MainActivity extends AppCompatActivity {
                 image.setTag(null);
             }
         }
-		
-		//aqui segue o fluxo normal, apenas instalamos um listener para sermos
-		//notificado caso o picasso não consiga carregar a imagem
+
+        //aqui segue o fluxo normal, apenas instalamos um listener para sermos
+        //notificado caso o picasso não consiga carregar a imagem
         Picasso picasso = new Picasso.Builder(this)
                 .listener(new Picasso.Listener() {
                     @Override
                     public void onImageLoadFailed(Picasso picasso, Uri uri, Exception exception) {
                         //a exceção é java.io.IOException: Cannot reset markableinputstream
-						//issues relacionados:
-						// - https://github.com/square/picasso/issues/364
-						// - https://github.com/square/picasso/issues/465
-						// - https://github.com/square/picasso/issues/907
-						// - https://github.com/square/picasso/issues/983
-						// - etc
-						
-						//sabemos que a exceção que lançada nos dispositivos contém a string 
-						//"java.io.IOException: Cannot reset" na mensagem, então testamos 
-						//apenas com "reset" para podermos tratar
+                        //issues relacionados:
+                        // - https://github.com/square/picasso/issues/364
+                        // - https://github.com/square/picasso/issues/465
+                        // - https://github.com/square/picasso/issues/907
+                        // - https://github.com/square/picasso/issues/983
+                        // - etc
+
+                        //sabemos que a exceção que lançada nos dispositivos contém a string
+                        //"java.io.IOException: Cannot reset" na mensagem, então testamos
+                        //apenas com "reset" para podermos tratar
                         if (exception.getMessage().contains("reset")) {
-							//fluxo normal, pegar o caminho físico para a imagem no dispositivo
-							//isso vai retornar algo do tipo /mnt/sdcard/myimage.jpg
+                            //fluxo normal, pegar o caminho físico para a imagem no dispositivo
+                            //isso vai retornar algo do tipo /mnt/sdcard/myimage.jpg
                             String path = getPath(uri);
                             if (path != null) {
-								//decodificar a imagem com o tamanho menor
+                                //decodificar a imagem com o tamanho menor
                                 Bitmap decodedBitmapOnError = decodeSampledBitmapFromPath(path, image.getWidth(), image.getHeight());
                                 if (decodedBitmapOnError != null) {
-									//fluxo normal, setar o bitmap
+                                    //fluxo normal, setar o bitmap
                                     image.setImageBitmap(decodedBitmapOnError);
-									
-									//aqui entra uma parte importantíssima: setar a tag!
-									//sem isso não seremos capaz de reciclar o bitmap no caso de reuso,
-									//por exemplo, em um adapter do recyclerview
+
+                                    //aqui entra uma parte importantíssima: setar a tag!
+                                    //sem isso não seremos capaz de reciclar o bitmap no caso de reuso,
+                                    //por exemplo, em um adapter do recyclerview
                                     image.setTag(new WeakReference<Bitmap>(decodedBitmapOnError));
                                 }
                             }
@@ -90,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }).build();
 
-		//fluxo normal, carregar usando o picasso!
+        //fluxo normal, carregar usando o picasso!
         picasso.load(file).fit().into(image);
     }
 
