@@ -28,7 +28,7 @@ public class MainActivity extends AppCompatActivity {
 
         //em caso de erro do picasso, nós carregamos o bitmap no método onImageLoadFailed
         //e setamos uma WeakReference deste bitmap na tag do imageview
-        //isto é importante pois nós não estamos preocupados em manter estes
+        //isto é importante pois nós estamos preocupados em não manter estes
         //bitmaps carregados em memória, então tão logo o imageview for reutilizado
         //nós reciclamos o bitmap antigo
         if (image.getTag() != null) {
