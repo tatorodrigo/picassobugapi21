@@ -9,6 +9,7 @@ import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.ImageView;
 
+import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
 import java.io.File;
@@ -20,7 +21,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        loadImage(new File(Environment.getExternalStorageDirectory(), "image_hangouts.jpg"));
+        //loadImage(new File(Environment.getExternalStorageDirectory(), "image_hangouts.jpg"));
+        loadImage2(new File(Environment.getExternalStorageDirectory(), "image_hangouts.jpg"));
     }
 
     private void loadImage(File file) {
@@ -94,8 +96,79 @@ public class MainActivity extends AppCompatActivity {
         picasso.load(file).fit().into(image);
     }
 
+    /**
+     * Este metodo contém quase a mesma lógica do loadImage, porém não
+     * cria uma instância de picasso para cada requisição.
+     *
+     * Por outro lado, não conseguimos instalar o listener no Builder para obtermos
+     * detalhes em caso de erro no carregamento.
+     * 
+     * @param file
+     */
+    private void loadImage2(final File file) {
+        final ImageView image = (ImageView) findViewById(R.id.image_view);
+
+        //em caso de erro do picasso, nós carregamos o bitmap no método onImageLoadFailed
+        //e setamos uma WeakReference deste bitmap na tag do imageview
+        //isto é importante pois nós estamos preocupados em não manter estes
+        //bitmaps carregados em memória, então tão logo o imageview for reutilizado
+        //nós reciclamos o bitmap antigo
+        if (image.getTag() != null) {
+            //bom, agora sabemos que a imageview tem uma tag que, esperançosamente,
+            //fomos nós quem setamos no onImageLoadFailed
+            //por isto, fazemos o cast para WeakReference<Bitmap> da tag do imageview
+            try {
+                WeakReference<Bitmap> decodedBitmapOnErrorReference = (WeakReference<Bitmap>) image.getTag();
+                Bitmap decodedBitmapOnError = decodedBitmapOnErrorReference.get();
+                if (decodedBitmapOnError != null && !decodedBitmapOnError.isRecycled()) {
+                    //aqui é onde vamos liberar memória
+                    //para não termos problema com o imageview (tentar usar um bitmap reciclado)
+                    //nós setamos o imagebitmap para nulo antes de reciclar o bitmap
+                    image.setImageBitmap(null);
+                    decodedBitmapOnError.recycle();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                image.setTag(null);
+            }
+        }
+
+        //fluxo normal, carregar usando o picasso!
+        Picasso.with(this)
+                .load(file)
+                .fit()
+                .into(image, new Callback() {
+                    @Override
+                    public void onSuccess() {
+
+                    }
+
+                    @Override
+                    public void onError() {
+                        //ao contrário do listener instalado no builder do picasso no método
+                        //loadImage, nós não temos detalhes do erro
+                        //então de qualquer forma vamos pegar o caminho físico para a imagem no dispositivo
+                        //e tentar carregar
+                        String path = file.getAbsolutePath();
+                        //decodificar a imagem com o tamanho menor
+                        Bitmap decodedBitmapOnError = decodeSampledBitmapFromPath(path, image.getWidth(), image.getHeight());
+                        if (decodedBitmapOnError != null) {
+                            //fluxo normal, setar o bitmap
+                            image.setImageBitmap(decodedBitmapOnError);
+
+                            //aqui entra uma parte importantíssima: setar a tag!
+                            //sem isso não seremos capaz de reciclar o bitmap no caso de reuso,
+                            //por exemplo, em um adapter do recyclerview
+                            image.setTag(new WeakReference<Bitmap>(decodedBitmapOnError));
+                        }
+                    }
+                });
+    }
+
     private Bitmap decodeSampledBitmapFromPath(String path, int reqWidth, int reqHeight) {
         // First decode with inJustDecodeBounds=true to check dimensions
+
         final BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true;
         BitmapFactory.decodeFile(path, options);
